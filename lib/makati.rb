@@ -1,3 +1,5 @@
+# require "makati/railtie" if defined?(Rails)
+
 require "makati/version"
 require "makati/instance_methods"
 require "makati/pagination"
@@ -11,9 +13,8 @@ module Makati
 
     def index resources = nil,  &block
       resources = find_resources resources
-      if block_given?
-        resources = yield(resources)
-      end
+      # FIX ME 当yield返回空时报错
+      resources = yield(resources) if block_given?
       instance_variable_set("@#{resources_name}", paginate(resources.order(id: :desc)))
     end
     alias_method :res_index, :index
@@ -21,6 +22,11 @@ module Makati
     # method(:index).super_method.call
 
     def show
+      # resource = find_base_resource
+      # instance_variable_set("@#{resource_name(resource)}", resource)
+      # if block_given?
+      #   yield(resource)
+      # end
       instance_variable_set("@#{resource_name}", find_resource)
     end
 
@@ -98,4 +104,32 @@ module Makati
       const || "#{resource_klass_name}Form::#{action_name.classify}".try(:constantize)
     end
   end
+
+  class << self
+    def config
+      return @config if defined?(@config)
+      @config = Configuration.new
+      @config.style         = :colorful
+      @config.length        = 5
+      @config.strikethrough = true
+      @config.expires_in    = 2.minutes
+
+      if Rails.application
+        @config.cache_store = Rails.application.config.cache_store
+      else
+        @config.cache_store = :mem_cache_store
+      end
+      @config.cache_store
+      @config
+    end
+
+    def configure(&block)
+      config.instance_exec(&block)
+    end
+  end
+
+end
+
+ActiveSupport.on_load(:action_controller) do
+  ActionController::Base.send :include, Makati::Controller
 end

@@ -19,5 +19,25 @@ module Makati
     def resource_klass
       resource_klass_name.constantize
     end
+
+    # ===========
+
+    def klass
+      @klass ||= resource_name.classify
+    end
+
+    def item_name
+      controller_name.singularize
+    end
+
+    def items_name
+      controller_name
+    end
+
+    class << self
+      def klass name
+        @klass = name.constantize
+      end
+    end
   end
 end
